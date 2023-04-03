@@ -13,7 +13,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -22,6 +21,7 @@ import android.os.CountDownTimer;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+
 import androidx.annotation.NonNull;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.core.app.ActivityCompat;
@@ -33,11 +33,11 @@ import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -50,7 +50,7 @@ import android.widget.Button;
 import android.view.WindowManager;
 
 import com.ahmedadeltito.photoeditor.widget.SlidingUpPanelLayout;
-import com.ahmedadeltito.photoeditorsdk.BrushDrawingView;
+import com.ahmedadeltito.photoeditorsdk.CustomBrushDrawingView;
 import com.ahmedadeltito.photoeditorsdk.OnPhotoEditorSDKListener;
 import com.ahmedadeltito.photoeditorsdk.PhotoEditorSDK;
 import com.ahmedadeltito.photoeditorsdk.ViewType;
@@ -102,7 +102,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
     private boolean hideBottomControls = true;
 
     private ImageView photoEditImageView;
-    private BrushDrawingView brushDrawingView;
+    private CustomBrushDrawingView brushDrawingView;
 
 
     @Override
@@ -141,12 +141,13 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
         emojiFont = getFontFromRes(R.raw.emojioneandroid);
 
-         brushDrawingView = (BrushDrawingView) findViewById(R.id.drawing_view);
+        brushDrawingView = (CustomBrushDrawingView) findViewById(R.id.drawing_view);
         drawingViewColorPickerRecyclerView = (RecyclerView) findViewById(R.id.drawing_view_color_picker_recycler_view);
         parentImageRelativeLayout = (RelativeLayout) findViewById(R.id.parent_image_rl);
         ImageView closeTextView = (ImageView) findViewById(R.id.close_tv);
         ImageView addTextView = (ImageView) findViewById(R.id.add_text_tv);
         ImageView addPencil = (ImageView) findViewById(R.id.add_pencil_tv);
+        ImageView arrowPencil = (ImageView) findViewById(R.id.add_arrow_tv);
         RelativeLayout deleteRelativeLayout = (RelativeLayout) findViewById(R.id.delete_rl);
         ImageView deleteTextView = (ImageView) findViewById(R.id.delete_tv);
         TextView addImageEmojiTextView = (TextView) findViewById(R.id.add_image_emoji_tv);
@@ -165,8 +166,8 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
         ViewPager pager = (ViewPager) findViewById(R.id.image_emoji_view_pager);
         PageIndicator indicator = (PageIndicator) findViewById(R.id.image_emoji_indicator);
-        
-        // Changing width of an imageview to maintain aspect ratio 
+
+        // Changing width of an imageview to maintain aspect ratio
         // and to fix image perfectly in parent relative layout
         int width = rotatedBitmap.getWidth();
         int height = rotatedBitmap.getHeight();
@@ -236,6 +237,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         addCropTextView.setOnClickListener(this);
         addTextView.setOnClickListener(this);
         addPencil.setOnClickListener(this);
+        arrowPencil.setOnClickListener(this);
         saveTextView.setOnClickListener(this);
         doneDrawingTextView.setOnClickListener(this);
         clearAllTextView.setOnClickListener(this);
@@ -274,24 +276,24 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         }.start();
 
         ArrayList hiddenControls = (ArrayList<Integer>) getIntent().getExtras().getSerializable("hiddenControls");
-        for (int i = 0;i < hiddenControls.size();i++) {
+        for (int i = 0; i < hiddenControls.size(); i++) {
             if (hiddenControls.get(i).toString().equalsIgnoreCase("text")) {
-                addTextView.setVisibility(View.INVISIBLE);
+                addTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("clear")) {
-                clearAllTextView.setVisibility(View.INVISIBLE);
+                clearAllTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("draw")) {
-                addPencil.setVisibility(View.INVISIBLE);
+                addPencil.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("save")) {
-                saveTextView.setVisibility(View.INVISIBLE);
+                saveTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("sticker")) {
-                addImageEmojiTextView.setVisibility(View.INVISIBLE);
+                addImageEmojiTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("crop")) {
-                addCropTextView.setVisibility(View.INVISIBLE);
+                addCropTextView.setVisibility(View.GONE);
             }
         }
     }
@@ -406,6 +408,11 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             drawingViewColorPickerRecyclerView.setVisibility(View.GONE);
             doneDrawingTextView.setVisibility(View.GONE);
         }
+    }
+
+    private void updateArrowDrawingView() {
+        brushDrawingView.setDrawingMode(CustomBrushDrawingView.DrawingMode.Arrow);
+        updateBrushDrawingView(true);
     }
 
     private void returnBackWithSavedImage() {
@@ -575,11 +582,13 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             onBackPressed();
         } else if (v.getId() == R.id.add_image_emoji_tv) {
             mLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
-        } else if(v.getId() == R.id.add_crop_tv) {
+        } else if (v.getId() == R.id.add_crop_tv) {
             System.out.println("CROP IMAGE DUD");
             startCropping();
         } else if (v.getId() == R.id.add_text_tv) {
             openAddTextPopupWindow("", -1);
+        } else if (v.getId() == R.id.add_arrow_tv) {
+            updateArrowDrawingView();
         } else if (v.getId() == R.id.add_pencil_tv) {
             updateBrushDrawingView(true);
         } else if (v.getId() == R.id.done_drawing_tv) {
@@ -679,26 +688,23 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         }
     }
 
-    private Typeface getFontFromRes(int resource)
-    {
+    private Typeface getFontFromRes(int resource) {
         Typeface tf = null;
         InputStream is = null;
         try {
             is = getResources().openRawResource(resource);
-        }
-        catch(Resources.NotFoundException e) {
+        } catch (Resources.NotFoundException e) {
             Log.e(TAG, "Could not find font in resources!");
         }
 
         String outPath = getCacheDir() + "/tmp" + System.currentTimeMillis() + ".raw";
 
-        try
-        {
+        try {
             byte[] buffer = new byte[is.available()];
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outPath));
 
             int l = 0;
-            while((l = is.read(buffer)) > 0)
+            while ((l = is.read(buffer)) > 0)
                 bos.write(buffer, 0, l);
 
             bos.close();
@@ -707,9 +713,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
             // clean up
             new File(outPath).delete();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             Log.e(TAG, "Error reading in font!");
             return null;
         }
@@ -759,7 +763,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
                 if (resultUri != null) {
                     try {
                         selectedImagePath = resultUri.toString();
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver() , resultUri);
+                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), resultUri);
                         photoEditImageView.setImageBitmap(bitmap);
                     } catch (Exception ex) {
                         System.out.println("NO IMAGE DATA FOUND");
@@ -772,6 +776,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             }
         }
     }
+
     @TargetApi(Build.VERSION_CODES.KITKAT)
     protected String getPath(final Uri uri) {
         // DocumentProvider
