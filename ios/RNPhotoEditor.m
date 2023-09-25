@@ -1,4 +1,4 @@
-
+#import <Photos/Photos.h>
 #import "RNPhotoEditor.h"
 
 @implementation RNPhotoEditor
@@ -25,6 +25,22 @@ RCTResponseSenderBlock _onCancelEditing = nil;
     if ([path containsString:@"file://"]) {
         NSURL *url = [NSURL URLWithString:_editImagePath];
         path = url.path;
+    } else {
+        NSString *extension = @"jpeg";
+        if (isPNG) {
+            extension = @"png";
+        }
+        NSArray *paths =
+            NSSearchPathForDirectoriesInDomains((NSSearchPathDirectory)NSCachesDirectory, NSUserDomainMask, YES);
+        NSString *cacheDir = [paths firstObject];
+        NSString *annotationDirName = @"zinc_annotations";
+        NSURL *annotationDirURL = [NSURL fileURLWithPathComponents:@[cacheDir, annotationDirName]];
+        NSFileManager *fileManger = [NSFileManager defaultManager];
+        if (![fileManger fileExistsAtPath:annotationDirURL.path]) {
+            [fileManger createDirectoryAtURL:annotationDirURL withIntermediateDirectories:true attributes:nil error:nil];
+        }
+        NSString *fileName = [NSString stringWithFormat:@"%@.%@", [[NSUUID UUID] UUIDString], extension];
+        path = [annotationDirURL URLByAppendingPathComponent:fileName].path;
     }
 
     [isPNG ? UIImagePNGRepresentation(image) : UIImageJPEGRepresentation(image, 0.8) writeToFile:path options:NSDataWritingAtomic error:&error];
@@ -54,13 +70,29 @@ RCT_EXPORT_METHOD(Edit:(nonnull NSDictionary *)props onDone:(RCTResponseSenderBl
         // Process Image for Editing
         UIImage *image = [UIImage imageWithContentsOfFile:_editImagePath];
         if (image == nil) {
-            NSURL *url = [NSURL URLWithString:_editImagePath];
-            NSData *data = [NSData dataWithContentsOfURL:url];
-
-            image = [UIImage imageWithData:data];
+            if([_editImagePath hasPrefix:@"ph://"]) {
+                NSString *assetId = [_editImagePath substringFromIndex:@"ph://".length];
+                PHAsset *asset = [[PHAsset fetchAssetsWithLocalIdentifiers:@[ assetId ] options:nil] firstObject];
+                if (asset != nil) {
+                    [[PHImageManager defaultManager] requestImageForAsset: asset
+                                                               targetSize: photoEditor.image.size
+                                                              contentMode: PHImageContentModeAspectFill
+                                                                  options: nil
+                                                            resultHandler:^(UIImage *result, NSDictionary *info) {
+                        if (result) {
+                            photoEditor.image = result;
+                        }
+                    }];
+                }
+            } else {
+                NSURL *url = [NSURL URLWithString:_editImagePath];
+                NSData *data = [NSData dataWithContentsOfURL:url];
+                photoEditor.image = [UIImage imageWithData:data];
+            }
+        } else {
+            photoEditor.image = image;
         }
 
-        photoEditor.image = image;
 
         // Process Stickers
         NSArray *stickers = [props objectForKey: @"stickers"];

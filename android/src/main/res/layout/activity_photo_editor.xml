@@ -25,31 +25,33 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/top_shadow"
                 android:layout_above="@id/bottom_shadow"
+                android:layout_below="@id/top_shadow"
                 android:background="#2c2c2c">
+
                 <RelativeLayout
                     android:id="@+id/parent_image_rl"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:adjustViewBounds="true"
-                    android:layout_centerInParent="true">
+                    android:layout_centerInParent="true"
+                    android:adjustViewBounds="true">
+
                     <ImageView
                         android:id="@+id/photo_edit_iv"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_centerInParent="true"
                         android:adjustViewBounds="true"
-                        android:contentDescription="@string/app_name"
-                        />
-                    <com.ahmedadeltito.photoeditorsdk.BrushDrawingView
+                        android:contentDescription="@string/app_name" />
+
+                    <com.ahmedadeltito.photoeditorsdk.CustomBrushDrawingView
                         android:id="@+id/drawing_view"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignBottom="@+id/photo_edit_iv"
-                        android:layout_alignTop="@+id/photo_edit_iv"
                         android:layout_alignStart="@+id/photo_edit_iv"
+                        android:layout_alignTop="@+id/photo_edit_iv"
                         android:layout_alignEnd="@+id/photo_edit_iv"
+                        android:layout_alignBottom="@+id/photo_edit_iv"
                         android:layout_centerInParent="true"
                         android:visibility="gone" />
                 </RelativeLayout>
@@ -61,14 +63,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:layout_marginEnd="20dp"
                 android:layout_marginStart="20dp"
-                android:layout_marginTop="10dp"
-                android:padding="10dp"
+                android:layout_marginEnd="20dp"
+                android:paddingHorizontal="10dp"
                 android:text="@string/done"
                 android:textColor="#FFFFFF"
                 android:textSize="20sp"
-                android:visibility="gone" />
+                android:layout_alignBottom="@id/top_shadow"
+                android:layout_alignTop="@id/top_shadow"
+                android:visibility="gone"
+                tools:visibility="visible"
+                android:textAlignment="center"
+                android:gravity="center"
+                />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/drawing_view_color_picker_recycler_view"
@@ -87,18 +94,19 @@
                 android:id="@+id/top_parent_rl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignBottom="@+id/top_shadow"
                 android:layout_alignTop="@+id/top_shadow"
+                android:layout_alignBottom="@+id/top_shadow"
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp">
 
                 <ImageView
                     android:id="@+id/close_tv"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:scaleType="fitXY"
-                    android:layout_marginTop="5dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_centerVertical="true"
                     android:layout_marginStart="10dp"
+                    android:layout_marginTop="5dp"
+                    android:scaleType="fitXY"
                     android:src="@drawable/close"
                     android:textColor="#FFFFFF"
                     android:textSize="20sp" />
@@ -106,26 +114,38 @@
                 <ImageView
                     android:id="@+id/add_text_tv"
                     android:layout_width="40dp"
-                    android:layout_height="35dp"
-                    android:scaleType="fitXY"
-                    android:layout_marginTop="7dp"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
+                    android:layout_height="40dp"
                     android:layout_alignParentEnd="true"
-                    android:layout_alignParentTop="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:scaleType="fitXY"
                     android:src="@drawable/text"
+                    android:textAlignment="center"
+                    android:textColor="#FFFFFF"/>
+
+                <ImageView
+                    android:id="@+id/add_arrow_tv"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_toStartOf="@+id/add_text_tv"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/arrow_outward"
                     android:textColor="#FFFFFF"
-                    android:textSize="20sp" />
+                    app:tint="#FFFFFF" />
 
                 <ImageView
                     android:id="@+id/add_pencil_tv"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_toStartOf="@+id/add_arrow_tv"
                     android:scaleType="fitXY"
-                    android:layout_marginTop="5dp"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
-                    android:layout_toStartOf="@+id/add_text_tv"
                     android:src="@drawable/edit"
                     android:textColor="#FFFFFF"
                     android:textSize="20sp" />
@@ -134,12 +154,24 @@
                     android:id="@+id/add_crop_tv"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:scaleType="fitXY"
-                    android:layout_marginTop="5dp"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_toStartOf="@+id/add_pencil_tv"
+                    android:scaleType="fitXY"
                     android:src="@drawable/crop"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/add_image_emoji_tv"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_centerVertical="true"
+                    android:layout_toStartOf="@+id/add_crop_tv"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/ic_images"
                     android:textColor="#FFFFFF"
                     android:textSize="20sp" />
 
@@ -147,28 +179,20 @@
                     android:id="@+id/clear_all_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="3dp"
+                    android:layout_toStartOf="@+id/add_image_emoji_tv"
                     android:scaleType="fitXY"
+                    android:gravity="center"
                     android:shadowColor="#000000"
                     android:shadowDx="0"
                     android:shadowDy="0"
                     android:shadowRadius="10"
-                    android:layout_marginTop="13dp"
-                    android:layout_marginStart="3dp"
-                    android:layout_marginEnd="3dp"
-                    android:layout_toStartOf="@+id/add_crop_tv"
                     android:text="@string/clear"
                     android:textColor="#FFFFFF"
-                    android:textSize="17sp" />    
-
-                <TextView
-                    android:id="@+id/add_image_emoji_tv"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/add_crop_tv"
-                    android:padding="15dp"
-                    android:text="@string/ic_images"
-                    android:textColor="#FFFFFF"
                     android:textSize="20sp" />
+
+
             </RelativeLayout>
 
             <View
@@ -182,8 +206,8 @@
                 android:id="@+id/bottom_parent_rl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignBottom="@+id/bottom_shadow"
                 android:layout_alignTop="@+id/bottom_shadow"
+                android:layout_alignBottom="@+id/bottom_shadow"
                 android:paddingLeft="26dp"
                 android:paddingRight="26dp">
 
@@ -191,30 +215,31 @@
                     android:id="@+id/save_tv"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:scaleType="fitXY"
-                    android:paddingTop="5dp"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
                     android:gravity="center"
+                    android:paddingTop="5dp"
+                    android:scaleType="fitXY"
                     android:src="@drawable/download"
                     android:textColor="#FFFFFF"
                     android:textSize="25sp" />
+
                 <Button
                     android:id="@+id/go_to_next_screen_tv"
-                    android:layout_height="38dp"
                     android:layout_width="wrap_content"
+                    android:layout_height="38dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
+                    android:background="#31B700"
+                    android:bottomLeftRadius="10dp"
+                    android:bottomRightRadius="10dp"
+                    android:padding="10dp"
+                    android:text="@string/upload"
+                    android:textAllCaps="false"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
-                    android:background="#31B700"
-                    android:padding="10dp"
-                    android:bottomRightRadius="10dp"
-                    android:bottomLeftRadius="10dp"
                     android:topLeftRadius="10dp"
-                    android:topRightRadius="10dp"
-                    android:textAllCaps="false"
-                    android:text="@string/upload"/>
+                    android:topRightRadius="10dp" />
 
             </RelativeLayout>
 
@@ -222,21 +247,21 @@
                 android:id="@+id/delete_rl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_alignBottom="@+id/bottom_shadow"
                 android:layout_alignTop="@+id/bottom_shadow"
-                android:padding="20dp"
+                android:layout_alignBottom="@+id/bottom_shadow"
+                android:layout_alignParentBottom="true"
                 android:background="#000000"
+                android:padding="20dp"
                 android:visibility="gone">
 
                 <ImageView
                     android:id="@+id/delete_tv"
-                    android:layout_centerInParent="true"
-                    android:textColor="#FFFFFF"
-                    android:src="@drawable/trash"
                     android:layout_width="40dp"
-                    android:background="#000000"
                     android:layout_height="40dp"
+                    android:layout_centerInParent="true"
+                    android:background="#000000"
+                    android:src="@drawable/trash"
+                    android:textColor="#FFFFFF"
                     android:textSize="20sp" />
 
             </RelativeLayout>

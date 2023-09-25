@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,8 +14,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,7 +23,9 @@ import android.os.CountDownTimer;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
@@ -33,11 +36,11 @@ import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -50,17 +53,22 @@ import android.widget.Button;
 import android.view.WindowManager;
 
 import com.ahmedadeltito.photoeditor.widget.SlidingUpPanelLayout;
-import com.ahmedadeltito.photoeditorsdk.BrushDrawingView;
+import com.ahmedadeltito.photoeditorsdk.CustomBrushDrawingView;
 import com.ahmedadeltito.photoeditorsdk.OnPhotoEditorSDKListener;
 import com.ahmedadeltito.photoeditorsdk.PhotoEditorSDK;
 import com.ahmedadeltito.photoeditorsdk.ViewType;
 import com.viewpagerindicator.PageIndicator;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -102,7 +110,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
     private boolean hideBottomControls = true;
 
     private ImageView photoEditImageView;
-    private BrushDrawingView brushDrawingView;
+    private CustomBrushDrawingView brushDrawingView;
 
 
     @Override
@@ -113,16 +121,30 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
 
         selectedImagePath = getIntent().getExtras().getString("selectedImagePath");
-        String color = getIntent().getExtras().getString("color");
+        
         if (selectedImagePath.contains("content://")) {
             selectedImagePath = getPath(Uri.parse(selectedImagePath));
         }
-        Log.d("PhotoEditorSDK", "Selected image path: " + selectedImagePath);
+        doBeforeBitmapLoad();
+        Glide.with(this).asBitmap().load(selectedImagePath).into(new CustomTarget<Bitmap>() {
+            @Override
+            public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                doAfterBitmapLoad(resource);
+            }
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 1;
-        Bitmap bitmap = BitmapFactory.decodeFile(selectedImagePath, options);
+            @Override
+            public void onLoadCleared(@Nullable Drawable placeholder) {
+            }
+        });
+    }
 
+    private void doBeforeBitmapLoad() {
+        String color = getIntent().getExtras().getString("color");
+        Button goToNextTextView = (Button) findViewById(R.id.go_to_next_screen_tv);
+        goToNextTextView.setBackgroundColor(Color.parseColor(color));
+    }
+
+    private void doAfterBitmapLoad(Bitmap bitmap) {   
         Bitmap rotatedBitmap;
         try {
             ExifInterface exif = new ExifInterface(selectedImagePath);
@@ -141,12 +163,13 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
         emojiFont = getFontFromRes(R.raw.emojioneandroid);
 
-         brushDrawingView = (BrushDrawingView) findViewById(R.id.drawing_view);
+        brushDrawingView = (CustomBrushDrawingView) findViewById(R.id.drawing_view);
         drawingViewColorPickerRecyclerView = (RecyclerView) findViewById(R.id.drawing_view_color_picker_recycler_view);
         parentImageRelativeLayout = (RelativeLayout) findViewById(R.id.parent_image_rl);
         ImageView closeTextView = (ImageView) findViewById(R.id.close_tv);
         ImageView addTextView = (ImageView) findViewById(R.id.add_text_tv);
         ImageView addPencil = (ImageView) findViewById(R.id.add_pencil_tv);
+        ImageView arrowPencil = (ImageView) findViewById(R.id.add_arrow_tv);
         RelativeLayout deleteRelativeLayout = (RelativeLayout) findViewById(R.id.delete_rl);
         ImageView deleteTextView = (ImageView) findViewById(R.id.delete_tv);
         TextView addImageEmojiTextView = (TextView) findViewById(R.id.add_image_emoji_tv);
@@ -155,7 +178,6 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         doneDrawingTextView = (TextView) findViewById(R.id.done_drawing_tv);
         TextView clearAllTextView = (TextView) findViewById(R.id.clear_all_tv);
         Button goToNextTextView = (Button) findViewById(R.id.go_to_next_screen_tv);
-        goToNextTextView.setBackgroundColor(Color.parseColor(color));
         photoEditImageView = (ImageView) findViewById(R.id.photo_edit_iv);
         mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
         topShadow = findViewById(R.id.top_shadow);
@@ -165,8 +187,8 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
         ViewPager pager = (ViewPager) findViewById(R.id.image_emoji_view_pager);
         PageIndicator indicator = (PageIndicator) findViewById(R.id.image_emoji_indicator);
-        
-        // Changing width of an imageview to maintain aspect ratio 
+
+        // Changing width of an imageview to maintain aspect ratio
         // and to fix image perfectly in parent relative layout
         int width = rotatedBitmap.getWidth();
         int height = rotatedBitmap.getHeight();
@@ -236,6 +258,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         addCropTextView.setOnClickListener(this);
         addTextView.setOnClickListener(this);
         addPencil.setOnClickListener(this);
+        arrowPencil.setOnClickListener(this);
         saveTextView.setOnClickListener(this);
         doneDrawingTextView.setOnClickListener(this);
         clearAllTextView.setOnClickListener(this);
@@ -274,24 +297,24 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         }.start();
 
         ArrayList hiddenControls = (ArrayList<Integer>) getIntent().getExtras().getSerializable("hiddenControls");
-        for (int i = 0;i < hiddenControls.size();i++) {
+        for (int i = 0; i < hiddenControls.size(); i++) {
             if (hiddenControls.get(i).toString().equalsIgnoreCase("text")) {
-                addTextView.setVisibility(View.INVISIBLE);
+                addTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("clear")) {
-                clearAllTextView.setVisibility(View.INVISIBLE);
+                clearAllTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("draw")) {
-                addPencil.setVisibility(View.INVISIBLE);
+                addPencil.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("save")) {
-                saveTextView.setVisibility(View.INVISIBLE);
+                saveTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("sticker")) {
-                addImageEmojiTextView.setVisibility(View.INVISIBLE);
+                addImageEmojiTextView.setVisibility(View.GONE);
             }
             if (hiddenControls.get(i).toString().equalsIgnoreCase("crop")) {
-                addCropTextView.setVisibility(View.INVISIBLE);
+                addCropTextView.setVisibility(View.GONE);
             }
         }
     }
@@ -408,6 +431,11 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         }
     }
 
+    private void updateArrowDrawingView() {
+        brushDrawingView.setDrawingMode(CustomBrushDrawingView.DrawingMode.Arrow);
+        updateBrushDrawingView(true);
+    }
+
     private void returnBackWithSavedImage() {
         int permissionCheck = PermissionChecker.checkCallingOrSelfPermission(this,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -426,22 +454,22 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
                 public void onFinish() {
                     String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
                     String imageName = "IMG_" + timeStamp + ".jpg";
-                    Intent returnIntent = new Intent();
 
                     if (isSDCARDMounted()) {
-                        String folderName = "PhotoEditorSDK";
+                        String folderName = "zinc_annotations";
                         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), folderName);
                         if (!mediaStorageDir.exists() && !mediaStorageDir.mkdirs()) {
                             Log.d("PhotoEditorSDK", "Failed to create directory");
                         }
 
-                        String selectedOutputPath = mediaStorageDir.getPath() + File.separator + imageName;
-                        returnIntent.putExtra("imagePath", selectedOutputPath);
-                        Log.d("PhotoEditorSDK", "selected camera path " + selectedOutputPath);
-                        File file = new File(selectedOutputPath);
+                        // Add the image to the gallery
+                        ContentValues values = new ContentValues();
+                        values.put(MediaStore.Images.Media.TITLE, imageName);
+                        values.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+                        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
                         try {
-                            FileOutputStream out = new FileOutputStream(file);
+                            OutputStream out = getContentResolver().openOutputStream(uri);
                             if (parentImageRelativeLayout != null) {
                                 parentImageRelativeLayout.setDrawingCacheEnabled(true);
 
@@ -454,7 +482,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
                             out.close();
 
                             try {
-                                ExifInterface exifDest = new ExifInterface(file.getAbsolutePath());
+                                ExifInterface exifDest = new ExifInterface(uri.getPath());
                                 exifDest.setAttribute(ExifInterface.TAG_ORIENTATION, Integer.toString(imageOrientation));
                                 exifDest.saveAttributes();
                             } catch (IOException e) {
@@ -464,12 +492,10 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
                             var7.printStackTrace();
                         }
                     }
-
-                    setResult(Activity.RESULT_OK, returnIntent);
-                    finish();
                 }
             }.start();
             Toast.makeText(this, getString(R.string.save_image_succeed), Toast.LENGTH_SHORT).show();
+            updateView(View.VISIBLE);
         } else {
             showPermissionRequest();
         }
@@ -486,16 +512,26 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             public void onTick(long millisUntilFinished) {
 
             }
-
+            private String getImagePath() {
+                String imageName = UUID.randomUUID().toString() + ".jpg";
+                File dir = new File(getCacheDir(), "zinc_annotations");
+                if (!dir.exists()) {
+                    dir.mkdir();
+                }
+                return dir.getAbsolutePath() + "/" + imageName;
+            }        
             public void onFinish() {
-                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-                String imageName = "/IMG_" + timeStamp + ".jpg";
-
-                String selectedImagePath = getIntent().getExtras().getString("selectedImagePath");
+                String selectedImagePath = getIntent().getExtras().getString("selectedImagePath").replaceAll("file://", "");
+                String selectedImagePathLower = selectedImagePath.toLowerCase();
+                boolean localFile = selectedImagePathLower.startsWith("/");
+                File appFile = getFilesDir().getParentFile();
+                if (localFile && appFile != null) {
+                    localFile = selectedImagePath.startsWith(appFile.getAbsolutePath());
+                }
+                if (!localFile) {
+                    selectedImagePath = getImagePath();
+                }
                 File file = new File(selectedImagePath);
-//                String newPath = getCacheDir() + imageName;
-//	            File file = new File(newPath);
-
                 try {
                     FileOutputStream out = new FileOutputStream(file);
                     if (parentImageRelativeLayout != null) {
@@ -575,11 +611,13 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             onBackPressed();
         } else if (v.getId() == R.id.add_image_emoji_tv) {
             mLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
-        } else if(v.getId() == R.id.add_crop_tv) {
+        } else if (v.getId() == R.id.add_crop_tv) {
             System.out.println("CROP IMAGE DUD");
             startCropping();
         } else if (v.getId() == R.id.add_text_tv) {
             openAddTextPopupWindow("", -1);
+        } else if (v.getId() == R.id.add_arrow_tv) {
+            updateArrowDrawingView();
         } else if (v.getId() == R.id.add_pencil_tv) {
             updateBrushDrawingView(true);
         } else if (v.getId() == R.id.done_drawing_tv) {
@@ -679,26 +717,23 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
         }
     }
 
-    private Typeface getFontFromRes(int resource)
-    {
+    private Typeface getFontFromRes(int resource) {
         Typeface tf = null;
         InputStream is = null;
         try {
             is = getResources().openRawResource(resource);
-        }
-        catch(Resources.NotFoundException e) {
+        } catch (Resources.NotFoundException e) {
             Log.e(TAG, "Could not find font in resources!");
         }
 
         String outPath = getCacheDir() + "/tmp" + System.currentTimeMillis() + ".raw";
 
-        try
-        {
+        try {
             byte[] buffer = new byte[is.available()];
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outPath));
 
             int l = 0;
-            while((l = is.read(buffer)) > 0)
+            while ((l = is.read(buffer)) > 0)
                 bos.write(buffer, 0, l);
 
             bos.close();
@@ -707,9 +742,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
 
             // clean up
             new File(outPath).delete();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             Log.e(TAG, "Error reading in font!");
             return null;
         }
@@ -763,7 +796,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
                 if (resultUri != null) {
                     try {
                         selectedImagePath = resultUri.toString();
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver() , resultUri);
+                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), resultUri);
                         photoEditImageView.setImageBitmap(bitmap);
                     } catch (Exception ex) {
                         System.out.println("NO IMAGE DATA FOUND");
@@ -776,6 +809,7 @@ public class PhotoEditorActivity extends AppCompatActivity implements View.OnCli
             }
         }
     }
+
     @TargetApi(Build.VERSION_CODES.KITKAT)
     protected String getPath(final Uri uri) {
         // DocumentProvider
